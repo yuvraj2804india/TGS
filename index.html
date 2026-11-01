@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>TGS Order Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky header + tab bar; each tab is one working surface (summary first, detail below); forms slide up as a sheet. */
+:root{
+  --bg:#faf6f8; --surface:#ffffff; --sunk:#f3ecf0; --ink:#2a1f26; --muted:#76666f; --line:#e9dde3;
+  --accent:#8c2f5c; --accent-ink:#ffffff; --accent-soft:#f6e4ed; --gold:#9a6f1c; --blue:#3b5f9e;
+  --ok:#2f7d55; --ok-soft:#e3f2ea; --warn:#a85f00; --warn-soft:#fbeedb; --bad:#b03a3a; --bad-soft:#f8e3e3;
+  --shadow:0 10px 30px rgba(60,20,40,.14);
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#171219; --surface:#211a24; --sunk:#1c161f; --ink:#f2e9ee; --muted:#b2a1aa; --line:#392e3c;
+  --accent:#e47fae; --accent-ink:#1b1016; --accent-soft:#3a2231; --gold:#dcb15c; --blue:#8fb0ea;
+  --ok:#6cc596; --ok-soft:#1e3328; --warn:#e8a64c; --warn-soft:#3a2b17; --bad:#f08080; --bad-soft:#3d1f22;
+  --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#171219; --surface:#211a24; --sunk:#1c161f; --ink:#f2e9ee; --muted:#b2a1aa; --line:#392e3c;
+  --accent:#e47fae; --accent-ink:#1b1016; --accent-soft:#3a2231; --gold:#dcb15c; --blue:#8fb0ea;
+  --ok:#6cc596; --ok-soft:#1e3328; --warn:#e8a64c; --warn-soft:#3a2b17; --bad:#f08080; --bad-soft:#3d1f22;
+  --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:10px;padding-block:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:8px;margin-right:auto;min-width:0}
+.brand h1{font-family:var(--f-display);font-size:22px;margin:0;letter-spacing:-.01em}
+.brand span{color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.tabs a{padding:7px 12px;border-radius:999px;color:var(--muted);text-decoration:none;font-weight:500;white-space:nowrap}
+.tabs a[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+.tabs a .dot{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;line-height:18px;text-align:center}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:500;white-space:nowrap;text-decoration:none;color:var(--ink);display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.small{padding:5px 10px;font-size:13px;border-radius:8px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn[disabled]{opacity:.5;cursor:default}
+.btn:focus-visible,.tabs a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{padding-block:20px 60px;display:grid;gap:24px}
+main>*,section{min-width:0}
+h2{font-family:var(--f-display);font-size:19px;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h3{font-size:15px;margin:0}
+.sec-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.sec-head .sp{margin-left:auto}
+.muted{color:var(--muted)}
+.small-t{font-size:13px}
+.num{font-variant-numeric:tabular-nums}
+.banner{padding:10px 14px;border-radius:10px;background:var(--warn-soft);color:var(--warn);font-size:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.banner.bad{background:var(--bad-soft);color:var(--bad)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi .l{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.kpi .v{font-family:var(--f-display);font-size:26px;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:13px;color:var(--muted)}
+.board-scroll{overflow-x:auto;padding-bottom:6px}
+.board{display:grid;grid-template-columns:repeat(5,minmax(210px,1fr));gap:12px;min-width:1080px}
+.col{background:var(--sunk);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:120px}
+.col h3{font-size:13px;margin:2px 4px;display:flex;justify-content:space-between;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;display:grid;gap:4px;text-align:left;width:100%}
+.card:hover{border-color:var(--accent)}
+.card .t{display:flex;justify-content:space-between;gap:8px;font-weight:600}
+.card .m{font-size:13px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.card .actions{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.empty-col{font-size:13px;color:var(--muted);padding:6px 4px}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.acc{background:var(--accent-soft);color:var(--accent)}
+.pill.ex{background:transparent;border:1px dashed var(--line)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.pad{padding:14px 16px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tbody tr.click{cursor:pointer} tbody tr.click:hover{background:var(--sunk)}
+td.r,th.r{text-align:right}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+input[type=search],input[type=text],input[type=tel],input[type=number],input[type=date],input[type=month],select,textarea{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px;width:100%;min-width:0}
+textarea{resize:vertical}
+.grid-h{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.hamper{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:8px;align-content:start}
+.hamper .n{font-family:var(--f-display);font-size:17px;display:flex;justify-content:space-between;gap:8px}
+.hamper .row{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.marg{height:6px;border-radius:6px;background:var(--sunk);overflow:hidden}
+.marg i{display:block;height:100%}
+.quick{display:grid;grid-template-columns:120px 160px 1fr 150px auto;gap:8px;padding:12px}
+@media (max-width:720px){.quick{grid-template-columns:1fr 1fr}.quick .wide{grid-column:1/-1}}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.two>*{min-width:0}
+@media (max-width:820px){.two{grid-template-columns:1fr}}
+.bars{display:grid;gap:10px;padding:14px 16px}
+.bar-row{display:grid;grid-template-columns:80px 1fr 100px;gap:10px;align-items:center;font-size:13px}
+.bar-track{height:12px;background:var(--sunk);border-radius:6px;position:relative;overflow:hidden}
+.bar-track i{position:absolute;inset:0 auto 0 0;border-radius:6px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:0 16px 12px}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.note{font-size:13px;color:var(--muted);max-width:75ch}
+.event{display:grid;grid-template-columns:64px 1fr;gap:14px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.event:last-child{border-bottom:none}
+.event .d{text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:12px;padding:6px 4px;align-self:start}
+.event .d b{display:block;font-family:var(--f-display);font-size:22px;line-height:1.1}
+.event .d span{font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.event .body{display:grid;gap:4px;min-width:0}
+.push{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:14px}
+.advice{white-space:normal;line-height:1.55;font-size:14px}
+.advice p{margin:0 0 8px}
+.follow{display:grid;grid-template-columns:1fr auto;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);align-items:center}
+.follow:last-child{border-bottom:none}
+.follow .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:560px){.follow{grid-template-columns:1fr}.follow .acts{justify-content:flex-start}}
+.scrim{position:fixed;inset:0;background:rgba(20,8,16,.45);z-index:20;display:flex;justify-content:center;align-items:flex-end}
+.sheet{background:var(--surface);width:min(720px,100%);max-height:92%;overflow:auto;border-radius:18px 18px 0 0;box-shadow:var(--shadow);padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+@media (min-width:760px){.scrim{align-items:center}.sheet{border-radius:18px;padding:22px 24px}}
+.sheet-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sheet-head h2{margin-right:auto}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form .full{grid-column:1/-1}
+.form label{display:grid;gap:4px;font-size:13px;color:var(--muted);font-weight:500;min-width:0}
+@media (max-width:520px){.form{grid-template-columns:1fr}}
+.comp-row{display:grid;grid-template-columns:1fr 90px auto;gap:8px;align-items:center}
+.paste{background:var(--accent-soft);border-radius:12px;padding:12px;display:grid;gap:8px}
+.paste .h{font-weight:600;color:var(--accent);font-size:14px}
+.totals{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between;background:var(--sunk);border-radius:12px;padding:10px 14px;font-size:14px}
+.totals b{font-variant-numeric:tabular-nums}
+.sheet-foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}
+.sheet-foot .sp{margin-left:auto}
+.steps{display:flex;gap:4px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;font-size:14px;max-width:calc(100% - 32px)}
+.ro .w-only{display:none!important}
+.empty{padding:22px;text-align:center;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(16px);opacity:.6}}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="bar">
+      <div class="brand"><h1 id="bizName">TGS</h1><span>Order desk</span></div>
+      <button class="btn w-only" id="addExpenseTop" type="button">+ Expense</button>
+      <button class="btn primary w-only" id="addOrderTop" type="button">+ Enquiry / order</button>
+    </div>
+    <nav class="tabs" aria-label="Sections" id="tabs"></nav>
+  </div>
+</header>
+<main class="wrap" id="view"><div class="empty">Loading your orders…</div></main>
+<div id="sheetRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+const STATUSES=[
+  {k:'enquiry',label:'Enquiry',next:'Confirm'},
+  {k:'confirmed',label:'Confirmed',next:'Start packing'},
+  {k:'preparing',label:'Packing',next:'Send out'},
+  {k:'out',label:'Out for delivery',next:'Mark delivered'},
+  {k:'delivered',label:'Delivered',next:null}
+];
+const STATUS_LABEL={lost:'Lost'};STATUSES.forEach(s=>STATUS_LABEL[s.k]=s.label);
+const CHANNELS=['Instagram','Facebook','WhatsApp','Phone call','Website','Referral','Market stall','Other'];
+const SOCIAL=['Instagram','Facebook'];
+const OCCASIONS=['Diwali','Christmas','Birthday','Anniversary','Wedding','Corporate','Mother’s Day','Father’s Day','Valentine’s Day','Lunar New Year','Eid','Raksha Bandhan','Holi','Easter','Baby shower','Housewarming','Thank you','Sympathy','Other'];
+const EXP_CATS=['Meta ads','Stock & products','Packaging','Delivery','Other marketing','Decor & ribbons','Fees & subscriptions','Other'];
+/* Sydney gifting calendar. approx: true = date follows the lunar calendar and may shift a day in Sydney; confirm with your temple or community. */
+const EVENTS=[
+  {date:'2026-11-08',name:'Diwali',who:'Indian (Hindu, Sikh, Jain)',occ:'Diwali',lead:21},
+  {date:'2026-11-11',name:'Bhai Dooj',who:'Indian',occ:'Diwali',lead:10},
+  {date:'2026-11-24',name:'Guru Nanak Gurpurab',who:'Sikh',occ:'Other',lead:10,approx:true},
+  {date:'2026-12-04',name:'Hanukkah begins',who:'Jewish',occ:'Other',lead:10},
+  {date:'2026-12-17',name:'End of school year (teacher gifts)',who:'Families, NSW schools',occ:'Thank you',lead:14,approx:true},
+  {date:'2026-12-25',name:'Christmas',who:'Everyone, plus corporate gifting',occ:'Christmas',lead:30},
+  {date:'2027-01-13',name:'Lohri',who:'Punjabi',occ:'Other',lead:10},
+  {date:'2027-01-14',name:'Makar Sankranti / Pongal',who:'Indian, Tamil',occ:'Other',lead:10,approx:true},
+  {date:'2027-02-06',name:'Lunar New Year',who:'Chinese, Vietnamese, Korean',occ:'Lunar New Year',lead:21},
+  {date:'2027-02-14',name:'Valentine’s Day',who:'Everyone',occ:'Valentine’s Day',lead:14},
+  {date:'2027-03-09',name:'Eid al-Fitr',who:'Muslim (Ramadan starts about 7 Feb)',occ:'Eid',lead:21,approx:true},
+  {date:'2027-03-22',name:'Holi',who:'Indian',occ:'Holi',lead:10,approx:true},
+  {date:'2027-03-28',name:'Easter',who:'Everyone',occ:'Easter',lead:14},
+  {date:'2027-04-14',name:'Vaisakhi',who:'Sikh, Punjabi (also Tamil New Year)',occ:'Other',lead:10},
+  {date:'2027-05-09',name:'Mother’s Day',who:'Everyone (Australia)',occ:'Mother’s Day',lead:21},
+  {date:'2027-05-16',name:'Eid al-Adha',who:'Muslim',occ:'Eid',lead:14,approx:true},
+  {date:'2027-06-30',name:'EOFY thank-you gifting',who:'Businesses, clients',occ:'Corporate',lead:30},
+  {date:'2027-08-17',name:'Raksha Bandhan',who:'Indian',occ:'Raksha Bandhan',lead:14,approx:true},
+  {date:'2027-09-05',name:'Father’s Day',who:'Everyone (Australia)',occ:'Father’s Day',lead:21},
+  {date:'2027-09-15',name:'Mid-Autumn Festival',who:'Chinese, Vietnamese',occ:'Other',lead:14,approx:true},
+  {date:'2027-10-09',name:'Dussehra',who:'Indian (Navratri starts about 30 Sep)',occ:'Other',lead:10,approx:true},
+  {date:'2027-10-29',name:'Diwali',who:'Indian (Hindu, Sikh, Jain)',occ:'Diwali',lead:21,approx:true}
+];
+
+const S={hampers:[],orders:[],expenses:[],inventory:[],settings:{name:'TGS',currency:'$'},db:null,sample:null,canWrite:true,loaded:false,dbMissing:false,
+  orderFilter:'open',orderSearch:'',expMonth:monthKey(new Date()),anRange:'month',advice:'',adviceBusy:false};
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function pad(n){return String(n).padStart(2,'0')}
+function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function todayISO(){return iso(new Date())}
+function addDays(isoStr,n){const [y,m,d]=isoStr.split('-');return iso(new Date(+y,+m-1,+d+n))}
+function monthKey(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)}
+function monthLabel(k){const [y,m]=k.split('-');return new Date(+y,+m-1,1).toLocaleDateString('en-AU',{month:'short',year:'2-digit'})}
+function money(n){const v=Math.round(Number(n)||0);return (v<0?'−':'')+S.settings.currency+Math.abs(v).toLocaleString('en-AU')}
+function fmtDate(s){if(!s)return '—';const [y,m,d]=s.split('-');return new Date(+y,+m-1,+d).toLocaleDateString('en-AU',{day:'numeric',month:'short'})}
+function daysFromToday(s){if(!s)return null;const [y,m,d]=s.split('-');const t=new Date();t.setHours(0,0,0,0);return Math.round((new Date(+y,+m-1,+d)-t)/864e5)}
+function num(v){const n=parseFloat(v);return isFinite(n)?n:0}
+function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function orderTotal(o){return num(o.qty||1)*num(o.unitPrice)-num(o.discount)+num(o.deliveryFee)}
+function orderCost(o){return num(o.qty||1)*num(o.unitCost)}
+function balance(o){return orderTotal(o)-num(o.paid)}
+function isSale(o){return o.status&&o.status!=='enquiry'&&o.status!=='lost'}
+function orderDay(o){return o.deliveryDate||(o.createdAt||'').slice(0,10)}
+function pct(a,b){return b?Math.round(a/b*100):0}
+/* Australian financial year: 1 July to 30 June */
+function fyOf(d){const y=d.getMonth()>=6?d.getFullYear():d.getFullYear()-1;return {start:y+'-07-01',end:(y+1)+'-06-30',label:'FY '+y+'–'+String(y+1).slice(2)}}
+function phoneDigits(p){let d=(p||'').replace(/\D/g,'');if(d.length===10&&d[0]==='0')d='61'+d.slice(1);return d}
+function contactLink(o,text){
+  const h=(o.handle||'').replace(/^@/,'').trim();
+  if(o.channel==='Instagram'&&h)return {href:'https://ig.me/m/'+encodeURIComponent(h),label:'Message on Instagram'};
+  if(o.channel==='Facebook'&&h)return {href:'https://m.me/'+encodeURIComponent(h),label:'Message on Messenger'};
+  const d=phoneDigits(o.phone);if(d)return {href:'https://wa.me/'+d+(text?'?text='+encodeURIComponent(text):''),label:'Message on WhatsApp'};
+  if(h)return {href:'https://ig.me/m/'+encodeURIComponent(h),label:'Message on Instagram'};
+  return null;
+}
+function payPill(o){if(!isSale(o))return '';const b=balance(o);if(b<=0)return '<span class="pill ok">Paid</span>';if(num(o.paid)>0)return `<span class="pill warn">${money(b)} due</span>`;return '<span class="pill bad">Unpaid</span>'}
+function duePill(o){if(!o.deliveryDate||o.status==='delivered'||o.status==='lost')return o.deliveryDate?`<span>${fmtDate(o.deliveryDate)}</span>`:'';const d=daysFromToday(o.deliveryDate);
+  if(d<0)return `<span class="pill bad">${-d}d late</span>`;if(d===0)return '<span class="pill warn">Today</span>';if(d===1)return '<span class="pill warn">Tomorrow</span>';return `<span>${fmtDate(o.deliveryDate)}</span>`}
+function toast(msg){const r=document.getElementById('toastRoot');r.innerHTML=`<div class="toast" role="status">${esc(msg)}</div>`;clearTimeout(toast.t);toast.t=setTimeout(()=>r.innerHTML='',2600)}
+
+/* ---------- stock ---------- */
+function hamperOf(o){return S.hampers.find(h=>h.id===o.hamperId)}
+function itemOf(id){return S.inventory.find(i=>i.id===id)}
+function needsFor(o){const h=hamperOf(o);return ((h&&h.components)||[]).filter(c=>c.itemId&&num(c.qty)>0).map(c=>({itemId:c.itemId,qty:num(c.qty)*num(o.qty||1)}))}
+function reservedMap(){const r={};S.orders.forEach(o=>{if(!['confirmed','preparing'].includes(o.status)||o.stockDeducted)return;needsFor(o).forEach(c=>r[c.itemId]=(r[c.itemId]||0)+c.qty)});return r}
+function stockRows(){const res=reservedMap();return S.inventory.map(i=>{const on=num(i.onHand),rv=res[i.id]||0,av=on-rv;
+  return {...i,on,rv,av,state:av<0?'short':(av<=num(i.reorderAt)?'low':'ok')}}).sort((a,b)=>({short:0,low:1,ok:2}[a.state]-{short:0,low:1,ok:2}[b.state])||a.name.localeCompare(b.name))}
+function buildable(h){if(!h.components||!h.components.length)return null;const res=reservedMap();let m=Infinity;
+  h.components.forEach(c=>{const it=itemOf(c.itemId);if(!it||num(c.qty)<=0)return;m=Math.min(m,Math.floor(Math.max(0,num(it.onHand)-(res[c.itemId]||0))/num(c.qty)))});return m===Infinity?null:m}
+async function adjustStock(list,sign){for(const c of list){const it=itemOf(c.itemId);if(!it)continue;await patch('inventory/'+it.id,{onHand:num(it.onHand)+sign*num(c.qty)});it.onHand=num(it.onHand)+sign*num(c.qty)}}
+/* Stock leaves the shelf when an order goes out for delivery; it comes back if a sent order is moved back or marked lost. */
+async function stockFields(prev,nextStatus,nextOrder){
+  const leaving=['out','delivered'].includes(nextStatus);
+  if(leaving&&!prev.stockDeducted){const used=needsFor(nextOrder);if(!used.length)return {};await adjustStock(used,-1);return {stockDeducted:true,stockUsed:used}}
+  if(!leaving&&prev.stockDeducted){await adjustStock(prev.stockUsed||[],+1);return {stockDeducted:false,stockUsed:[]}}
+  return {};
+}
+
+/* ---------- local storage (everything is saved in this browser) ---------- */
+const LS_KEY='tgs-order-desk-v1';
+const SEED={"inventory": {"ex-i1": {"name": "Wicker basket (medium)", "onHand": 12, "unit": "units", "reorderAt": 5, "unitCost": 9, "supplier": "", "example": true}, "ex-i2": {"name": "Dry fruit pack 250g", "onHand": 20, "unit": "packs", "reorderAt": 10, "unitCost": 7.5, "supplier": "", "example": true}, "ex-i3": {"name": "Chocolate box", "onHand": 6, "unit": "boxes", "reorderAt": 8, "unitCost": 6, "supplier": "", "example": true}, "ex-i4": {"name": "Scented candle", "onHand": 15, "unit": "units", "reorderAt": 5, "unitCost": 5, "supplier": "", "example": true}, "ex-i5": {"name": "Brass diya", "onHand": 10, "unit": "units", "reorderAt": 6, "unitCost": 3, "supplier": "", "example": true}}, "hampers": {"ex-h1": {"name": "Festive Mini Box", "price": 59, "cost": 24, "occasion": "Diwali", "active": true, "contents": "Dry fruits, brass diya, chocolates, card", "components": [{"itemId": "ex-i2", "qty": 1}, {"itemId": "ex-i5", "qty": 1}, {"itemId": "ex-i3", "qty": 1}], "example": true}, "ex-h2": {"name": "Celebration Classic", "price": 89, "cost": 38, "occasion": "Birthday", "active": true, "contents": "Basket, cookies, scented candle, chocolates, card", "components": [{"itemId": "ex-i1", "qty": 1}, {"itemId": "ex-i4", "qty": 1}, {"itemId": "ex-i3", "qty": 1}], "example": true}, "ex-h3": {"name": "Luxe Signature Basket", "price": 149, "cost": 68, "occasion": "Corporate", "active": true, "contents": "Basket, premium dry fruits, gourmet tea, chocolates, candle", "components": [{"itemId": "ex-i1", "qty": 1}, {"itemId": "ex-i2", "qty": 2}, {"itemId": "ex-i3", "qty": 2}, {"itemId": "ex-i4", "qty": 1}], "example": true}}, "orders": {"ex-o1": {"ref": "#1001", "customer": "Priya (example)", "phone": "", "handle": "priya.example", "channel": "Instagram", "occasion": "Diwali", "hamperId": "ex-h1", "hamperName": "Festive Mini Box", "qty": 4, "unitPrice": 59, "unitCost": 24, "discount": 0, "deliveryFee": 0, "deliveryDate": "2026-11-06", "paid": 0, "address": "", "giftNote": "", "notes": "Asked for price on 4 boxes", "status": "enquiry", "nextFollowUp": "2026-11-01", "createdAt": "2026-10-29T10:00:00Z", "example": true}, "ex-o2": {"ref": "#1002", "customer": "Rohan (example)", "phone": "", "handle": "", "channel": "Facebook", "occasion": "Birthday", "hamperId": "ex-h2", "hamperName": "Celebration Classic", "qty": 1, "unitPrice": 89, "unitCost": 38, "discount": 5, "deliveryFee": 15, "deliveryDate": "2026-11-03", "paid": 50, "address": "", "giftNote": "Happy birthday Maa!", "notes": "", "status": "confirmed", "createdAt": "2026-10-28T09:00:00Z", "example": true}, "ex-o3": {"ref": "#1003", "customer": "Harbour Accounting (example)", "phone": "", "handle": "", "channel": "Referral", "occasion": "Corporate", "hamperId": "ex-h3", "hamperName": "Luxe Signature Basket", "qty": 10, "unitPrice": 149, "unitCost": 68, "discount": 90, "deliveryFee": 0, "deliveryDate": "2026-10-27", "paid": 1400, "address": "", "giftNote": "", "notes": "", "status": "delivered", "stockDeducted": true, "stockUsed": [], "createdAt": "2026-10-20T09:00:00Z", "example": true}}, "expenses": {"ex-e1": {"amount": 420, "category": "Stock & products", "note": "Dry fruits and chocolates (example)", "date": "2026-10-18", "example": true}, "ex-e2": {"amount": 110, "category": "Packaging", "note": "Baskets, ribbons, tissue (example)", "date": "2026-10-19", "example": true}, "ex-e3": {"amount": 150, "category": "Meta ads", "note": "Diwali Instagram campaign (example)", "date": "2026-10-22", "example": true}}, "config": {}};
+function loadStore(){try{const s=JSON.parse(localStorage.getItem(LS_KEY));if(s&&typeof s==='object')return s}catch(e){}return null}
+let STORE=loadStore()||JSON.parse(JSON.stringify(SEED));
+let storageOk=true;
+function persist(){try{localStorage.setItem(LS_KEY,JSON.stringify(STORE));storageOk=true}catch(e){storageOk=false;toast('This browser would not save. Export a backup now.')}}
+const listeners=[];function notify(){listeners.forEach(l=>l())}
+window.addEventListener('storage',e=>{if(e.key===LS_KEY){STORE=loadStore()||STORE;notify()}});
+const clone=o=>JSON.parse(JSON.stringify(o));
+const localDb={
+  collection(c){return {onSnapshot(f){const run=()=>f({docs:Object.entries(STORE[c]||{}).map(([id,d])=>({id,data:()=>d}))});listeners.push(run);run();return()=>{}}}},
+  doc(path){const [c,id]=path.split('/');return {
+    async set(d){(STORE[c]=STORE[c]||{})[id]=clone(d);persist();notify()},
+    async update(d){if(!STORE[c]||!STORE[c][id])throw {code:'invalid_argument',message:'That record no longer exists'};Object.assign(STORE[c][id],clone(d));persist();notify()},
+    async delete(){if(STORE[c])delete STORE[c][id];persist();notify()},
+    onSnapshot(f){const run=()=>{const d=(STORE[c]||{})[id];f({exists:!!d,data:()=>d})};listeners.push(run);run();return()=>{}}}}
+};
+function exportBackup(){
+  const blob=new Blob([JSON.stringify({app:'tgs-order-desk',version:1,exportedAt:new Date().toISOString(),data:STORE},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tgs-order-desk-backup-'+todayISO()+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+  try{localStorage.setItem(LS_KEY+'-lastBackup',todayISO())}catch(e){}toast('Backup downloaded');
+}
+function importBackup(file){const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);const d=j.data||j;if(!d.orders&&!d.hampers)throw 0;
+  STORE={hampers:{},orders:{},expenses:{},inventory:{},config:{},...d};persist();notify();toast('Backup restored')}catch(e){toast('That file is not an Order Desk backup')}};r.readAsText(file)}
+function lastBackup(){try{return localStorage.getItem(LS_KEY+'-lastBackup')}catch(e){return null}}
+
+/* ---------- data ---------- */
+function boot(){
+  S.db=localDb;S.sample=null;
+  localDb.collection('hampers').onSnapshot(s=>{S.hampers=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>num(a.price)-num(b.price))});
+  localDb.collection('orders').onSnapshot(s=>{S.orders=s.docs.map(d=>({id:d.id,...d.data()}))});
+  localDb.collection('expenses').onSnapshot(s=>{S.expenses=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''))});
+  localDb.collection('inventory').onSnapshot(s=>{S.inventory=s.docs.map(d=>({id:d.id,...d.data()}))});
+  localDb.doc('config/settings').onSnapshot(s=>{S.settings={name:'TGS',currency:'$',...(s.exists?s.data():{})};document.getElementById('bizName').textContent=S.settings.name||'TGS'});
+  listeners.push(render);
+  S.loaded=true;render();
+}
+async function save(path,data){
+  
+  try{await S.db.doc(path).set(data);return true}
+  catch(e){toast('Could not save: '+(e&&e.message||'try again'));return false}
+}
+async function patch(path,data){if(!S.db)return false;try{await S.db.doc(path).update(data);return true}catch(e){toast('Could not save: '+(e&&e.message||'try again'));return false}}
+async function remove(path){if(!S.db)return;try{await S.db.doc(path).delete()}catch(e){toast('Could not delete')}}
+
+/* ---------- routing ---------- */
+const VIEWS=[['today','Today'],['orders','Orders'],['hampers','Hampers'],['stock','Stock'],['expenses','Expenses'],['analytics','Analytics'],['grow','Festivals & advice'],['setup','Setup']];
+function current(){const h=location.hash.slice(1);return VIEWS.some(v=>v[0]===h)?h:'today'}
+window.addEventListener('hashchange',render);
+function followUps(){const t=todayISO();return S.orders.filter(o=>o.status==='enquiry'&&(o.nextFollowUp||addDays((o.createdAt||t).slice(0,10),1))<=t)}
+function render(){
+  const v=current();
+  const short=S.loaded?stockRows().filter(r=>r.state==='short').length:0;const fu=S.loaded?followUps().length:0;
+  document.getElementById('tabs').innerHTML=VIEWS.map(([k,l])=>`<a href="#${k}" aria-current="${k===v?'page':'false'}">${l}${k==='today'&&fu?`<span class="dot">${fu}</span>`:''}${k==='stock'&&short?`<span class="dot">${short}</span>`:''}</a>`).join('');
+  const el=document.getElementById('view');
+  let banner='';
+  if(!S.loaded){el.innerHTML='<div class="empty">Loading your orders…</div>';return}
+  const lb=lastBackup();if(!lb||daysFromToday(lb)<-7)banner+=`<div class="banner">Your data lives only in this browser. ${lb?'Last backup '+fmtDate(lb)+'.':'No backup yet.'} <button class="btn small" type="button" data-act="export">Download backup</button></div>`;
+  const ex=[S.orders,S.hampers,S.expenses,S.inventory].some(a=>a.some(x=>x.example));
+  if(ex&&S.canWrite)banner+=`<div class="banner">Rows marked <b>example</b> are samples to show how it works. Turn the hampers and stock into your real ones, or <button class="btn small" data-act="clear-examples" type="button">Remove all examples</button></div>`;
+  el.innerHTML=banner+({today:vToday,orders:vOrders,hampers:vHampers,stock:vStock,expenses:vExpenses,analytics:vAnalytics,grow:vGrow,setup:vSetup}[v])();
+  if(v==='grow'&&S.advice){const a=document.getElementById('adviceOut');if(a)a.innerHTML=fmtAdvice(S.advice)}
+}
+
+/* ---------- views ---------- */
+function orderCard(o){
+  const st=STATUSES.find(s=>s.k===o.status);
+  return `<div class="card" tabindex="0" role="button" data-open="${esc(o.id)}">
+    <div class="t"><span>${esc(o.customer||'No name')}</span><span class="num">${money(orderTotal(o))}</span></div>
+    <div class="m">${esc(o.qty>1?o.qty+' × ':'')}${esc(o.hamperName||'Hamper not chosen')}</div>
+    <div class="m">${duePill(o)} ${payPill(o)} <span>${esc(o.channel||'')}</span> ${o.example?'<span class="pill ex">example</span>':''}</div>
+    ${st&&st.next&&S.canWrite?`<div class="actions"><button class="btn small" type="button" data-advance="${esc(o.id)}">${st.next} →</button></div>`:''}
+  </div>`;
+}
+function vToday(){
+  const open=S.orders.filter(o=>o.status!=='delivered'&&o.status!=='lost');
+  const week=open.filter(o=>o.status!=='enquiry'&&o.deliveryDate&&daysFromToday(o.deliveryDate)<=7);
+  const unpaid=S.orders.filter(o=>isSale(o)&&balance(o)>0);
+  const m=monthKey(new Date());
+  const sales=S.orders.filter(o=>isSale(o)&&orderDay(o).slice(0,7)===m).reduce((a,o)=>a+orderTotal(o),0);
+  const exp=S.expenses.filter(x=>(x.date||'').slice(0,7)===m).reduce((a,x)=>a+num(x.amount),0);
+  const fu=followUps();const short=stockRows().filter(r=>r.state==='short');
+  const next=EVENTS.find(e=>daysFromToday(e.date)>=0);
+  const recentDelivered=S.orders.filter(o=>o.status==='delivered').sort((a,b)=>(b.deliveryDate||'').localeCompare(a.deliveryDate||'')).slice(0,6);
+  const cols=STATUSES.map(s=>{
+    const list=s.k==='delivered'?recentDelivered:open.filter(o=>o.status===s.k).sort((a,b)=>(a.deliveryDate||'9').localeCompare(b.deliveryDate||'9'));
+    return `<div class="col"><h3><span>${s.label}</span><span class="num">${s.k==='delivered'?'recent':list.length}</span></h3>${list.map(orderCard).join('')||'<div class="empty-col">Nothing here</div>'}</div>`;
+  }).join('');
+  let alerts='';
+  if(short.length)alerts+=`<div class="banner bad">Not enough stock for confirmed orders: ${short.map(r=>`<b>${esc(r.name)}</b> (need ${-r.av} more)`).join(', ')}. <a href="#stock">Open stock</a></div>`;
+  if(next){const d=daysFromToday(next.date),h=pushFor(next);if(d<=next.lead+7)alerts+=`<div class="banner">${esc(next.name)} is in ${d} day${d===1?'':'s'}.${h?` Push <b>${esc(h.hamper.name)}</b>.`:''} <a href="#grow">See the plan</a></div>`}
+  return `${alerts}<section class="kpis">
+      <div class="kpi"><div class="l">Follow up today</div><div class="v">${fu.length}</div><div class="s">${open.filter(o=>o.status==='enquiry').length} open enquiries in total</div></div>
+      <div class="kpi"><div class="l">Deliver in 7 days</div><div class="v">${week.length}</div><div class="s">${week.filter(o=>daysFromToday(o.deliveryDate)<0).length} running late</div></div>
+      <div class="kpi"><div class="l">Payment to collect</div><div class="v">${money(unpaid.reduce((a,o)=>a+balance(o),0))}</div><div class="s">across ${unpaid.length} order${unpaid.length===1?'':'s'}</div></div>
+      <div class="kpi"><div class="l">${monthLabel(m)} profit</div><div class="v">${money(sales-exp)}</div><div class="s">${money(sales)} sales − ${money(exp)} spent</div></div>
+    </section>
+    ${fu.length?`<section><div class="sec-head"><h2>Follow up today</h2><span class="muted">Enquiries waiting on a reply. Message them, then snooze or close.</span></div><div class="panel">${fu.map(o=>{const c=contactLink(o);return `<div class="follow"><div><b>${esc(o.customer||'No name')}</b> <span class="muted small-t">${esc(o.channel||'')}${o.handle?' · @'+esc(o.handle.replace(/^@/,'')):''}</span><div class="muted small-t">${esc((o.qty>1?o.qty+' × ':'')+(o.hamperName||'No hamper yet'))}${o.deliveryDate?' · for '+fmtDate(o.deliveryDate):''}${o.notes?' · '+esc(o.notes):''}</div></div>
+      <div class="acts">${c?`<a class="btn small primary" href="${esc(c.href)}" target="_blank" rel="noopener">${c.label}</a>`:''}<button class="btn small w-only" type="button" data-snooze="${esc(o.id)}">Followed up, remind in 2 days</button><button class="btn small w-only" type="button" data-advance="${esc(o.id)}">Confirm order</button><button class="btn small ghost w-only" type="button" data-lost="${esc(o.id)}">Lost</button></div></div>`}).join('')}</div></section>`:''}
+    <section><div class="sec-head"><h2>Pipeline</h2><span class="muted">Tap a card to edit. One tap moves it to the next stage.</span></div>
+      <div class="board-scroll"><div class="board">${cols}</div></div></section>`;
+}
+function vOrders(){
+  const f=S.orderFilter,q=S.orderSearch.trim().toLowerCase();
+  let list=S.orders.slice();
+  if(f==='open')list=list.filter(o=>o.status!=='delivered'&&o.status!=='lost');
+  else if(f==='unpaid')list=list.filter(o=>isSale(o)&&balance(o)>0);
+  else if(f!=='all')list=list.filter(o=>o.status===f);
+  if(q)list=list.filter(o=>[o.customer,o.phone,o.handle,o.hamperName,o.address,o.occasion,o.ref].join(' ').toLowerCase().includes(q));
+  list.sort((a,b)=>orderDay(b).localeCompare(orderDay(a)));
+  const chips=[['open','Open'],['enquiry','Enquiries'],['unpaid','Unpaid'],['delivered','Delivered'],['lost','Lost'],['all','All']]
+    .map(([k,l])=>`<button class="chip" type="button" aria-pressed="${f===k}" data-filter="${k}">${l}</button>`).join('');
+  return `<section><div class="sec-head"><h2>Orders &amp; enquiries</h2><span class="muted num">${list.length} shown</span></div>
+    <div class="filters" style="margin-bottom:12px"><div style="flex:1 1 220px"><input type="search" id="orderSearch" placeholder="Search name, phone, handle, hamper…" value="${esc(S.orderSearch)}" aria-label="Search orders"></div>${chips}</div>
+    <div class="panel table-wrap"><table><thead><tr><th>Ref</th><th>Customer</th><th>Hamper</th><th>Delivery</th><th>Stage</th><th class="r">Total</th><th>Payment</th></tr></thead><tbody>
+    ${list.map(o=>`<tr class="click" data-open="${esc(o.id)}"><td class="num muted">${esc(o.ref||'')}</td><td><b>${esc(o.customer||'—')}</b><div class="muted small-t">${esc(o.channel||'')}${o.example?' · example':''}</div></td><td>${esc((o.qty>1?o.qty+' × ':'')+(o.hamperName||'—'))}<div class="muted small-t">${esc(o.occasion||'')}</div></td><td>${duePill(o)||'—'}</td><td><span class="pill ${o.status==='lost'?'bad':o.status==='delivered'?'ok':'acc'}">${esc(STATUS_LABEL[o.status]||o.status)}</span></td><td class="r num">${money(orderTotal(o))}</td><td>${payPill(o)||'—'}</td></tr>`).join('')
+      ||`<tr><td colspan="7" class="empty">No orders match. ${S.canWrite?'Add one with “+ Enquiry / order”.':''}</td></tr>`}
+    </tbody></table></div></section>`;
+}
+function vHampers(){
+  const sold={};S.orders.filter(isSale).forEach(o=>{sold[o.hamperId]=(sold[o.hamperId]||0)+num(o.qty||1)});
+  return `<section><div class="sec-head"><h2>Hamper catalogue</h2><span class="muted">Price and cost fill new orders. The recipe links each hamper to your stock.</span><span class="sp"></span><button class="btn primary w-only" type="button" data-act="new-hamper">+ Hamper</button></div>
+    <div class="grid-h">${S.hampers.map(h=>{const p=num(h.price),c=num(h.cost),mg=pct(p-c,p),b=buildable(h),col=mg<30?'var(--warn)':'var(--ok)';
+      return `<div class="hamper"><div class="n"><span>${esc(h.name)}</span>${h.active===false?'<span class="pill">Paused</span>':''}</div>
+        <div class="muted small-t">${esc(h.occasion||'Any occasion')}${h.example?' · <span class="pill ex">example</span>':''}</div>
+        ${h.contents?`<div class="small-t">${esc(h.contents)}</div>`:''}
+        <div class="row"><span class="muted">Price</span><b class="num">${money(p)}</b></div>
+        <div class="row"><span class="muted">Your cost</span><span class="num">${money(c)}</span></div>
+        <div class="row"><span class="muted">Margin</span><span class="num" style="color:${col}">${money(p-c)} · ${mg}%</span></div>
+        <div class="marg"><i style="width:${Math.max(0,Math.min(100,mg))}%;background:${col}"></i></div>
+        <div class="row"><span class="muted">Sold so far</span><span class="num">${sold[h.id]||0}</span></div>
+        <div class="row"><span class="muted">Can make from stock</span>${b===null?'<span class="muted">Add a recipe</span>':`<span class="pill ${b===0?'bad':b<5?'warn':'ok'}">${b}</span>`}</div>
+        <div class="w-only"><button class="btn small" type="button" data-edit-hamper="${esc(h.id)}">Edit</button></div></div>`}).join('')
+      ||`<div class="panel empty">No hampers yet. Add your first one with its selling price and what it costs you to make.</div>`}</div></section>`;
+}
+function vStock(){
+  const rows=stockRows();
+  return `<section><div class="sec-head"><h2>Stock</h2><span class="muted">Reserved = needed for confirmed orders not yet sent. Stock comes off automatically when an order goes out for delivery.</span><span class="sp"></span><button class="btn primary w-only" type="button" data-act="new-item">+ Stock item</button></div>
+    <div class="panel table-wrap"><table><thead><tr><th>Item</th><th class="r">On hand</th><th class="r">Reserved</th><th class="r">Free</th><th>Status</th><th class="w-only">Restock</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td><b class="click" style="cursor:pointer" data-edit-item="${esc(r.id)}">${esc(r.name)}</b><div class="muted small-t">${esc(r.unit||'units')}${r.unitCost?' · '+money(r.unitCost)+' each':''}${r.supplier?' · '+esc(r.supplier):''}${r.example?' · example':''}</div></td>
+      <td class="r num">${r.on}</td><td class="r num">${r.rv||'—'}</td><td class="r num"><b>${r.av}</b></td>
+      <td>${r.state==='short'?`<span class="pill bad">Short ${-r.av}</span>`:r.state==='low'?`<span class="pill warn">Reorder (at ${num(r.reorderAt)})</span>`:'<span class="pill ok">OK</span>'}</td>
+      <td class="w-only"><form class="filters" data-restock="${esc(r.id)}" style="flex-wrap:nowrap"><input type="number" min="1" step="1" placeholder="Qty" aria-label="Quantity received" style="width:80px" required><button class="btn small" type="submit">Add</button></form></td></tr>`).join('')
+      ||'<tr><td colspan="6" class="empty">No stock items yet. Add the things you put in hampers: baskets, chocolates, candles, ribbons.</td></tr>'}
+    </tbody></table></div>
+    <p class="note">Restocking adds to the count and logs the spend under Expenses at the item’s cost, so your profit stays right without typing it twice.</p></section>`;
+}
+function vExpenses(){
+  const m=S.expMonth;const list=S.expenses.filter(x=>(x.date||'').slice(0,7)===m);
+  const byCat={};list.forEach(x=>byCat[x.category||'Other']=(byCat[x.category||'Other']||0)+num(x.amount));
+  const total=list.reduce((a,x)=>a+num(x.amount),0);const max=Math.max(1,...Object.values(byCat));
+  return `<section class="panel w-only"><form id="quickExp" class="quick" autocomplete="off">
+      <input type="number" id="qeAmount" min="0" step="0.01" placeholder="Amount" aria-label="Amount" required>
+      <select id="qeCat" aria-label="Category">${EXP_CATS.map(c=>`<option>${c}</option>`).join('')}</select>
+      <input type="text" id="qeNote" class="wide" placeholder="What was it? (e.g. Diwali ad, 50 kraft boxes)" aria-label="Note">
+      <input type="date" id="qeDate" value="${todayISO()}" aria-label="Date">
+      <button class="btn primary" type="submit">Add expense</button></form></section>
+    <section class="two">
+      <div><div class="sec-head"><h2>Spent in</h2><input type="month" id="expMonth" value="${m}" style="width:auto" aria-label="Month"><span class="sp num"><b>${money(total)}</b></span></div>
+        <div class="panel table-wrap"><table><thead><tr><th>Date</th><th>What</th><th>Category</th><th class="r">Amount</th><th></th></tr></thead><tbody>
+        ${list.map(x=>`<tr><td class="num">${fmtDate(x.date)}</td><td>${esc(x.note||'—')}${x.example?' <span class="pill ex">example</span>':''}</td><td class="muted">${esc(x.category)}</td><td class="r num">${money(x.amount)}</td><td class="r"><button class="btn ghost small w-only" type="button" data-del-exp="${esc(x.id)}" aria-label="Delete expense">✕</button></td></tr>`).join('')
+          ||'<tr><td colspan="5" class="empty">No expenses this month.</td></tr>'}</tbody></table></div></div>
+      <div><div class="sec-head"><h2>By category</h2></div><div class="panel bars">
+        ${Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="bar-row" style="grid-template-columns:130px 1fr 90px"><span>${esc(k)}</span><div class="bar-track"><i style="width:${v/max*100}%;background:${k==='Meta ads'?'var(--blue)':'var(--accent)'}"></i></div><span class="num" style="text-align:right">${money(v)}</span></div>`).join('')||'<div class="muted">Nothing yet.</div>'}
+      </div><p class="note">Log your Meta ad spend as “Meta ads” (weekly from your Ads Manager billing is enough). Analytics then shows how much each ad dollar brings back.</p></div></section>`;
+}
+function rangeOf(k){const now=new Date();
+  if(k==='month')return {start:monthKey(now)+'-01',end:monthKey(now)+'-31',label:'This month'};
+  if(k==='lastmonth'){const d=new Date(now.getFullYear(),now.getMonth()-1,1);return {start:monthKey(d)+'-01',end:monthKey(d)+'-31',label:'Last month'}}
+  if(k==='fy')return fyOf(now);
+  if(k==='lastfy')return fyOf(new Date(now.getFullYear()-1,now.getMonth(),1));
+  return {start:'0000',end:'9999',label:'All time'}}
+function statsFor(r){
+  const os=S.orders.filter(o=>{const d=orderDay(o);return d>=r.start&&d<=r.end});const sales=os.filter(isSale);
+  const xs=S.expenses.filter(x=>(x.date||'')>=r.start&&(x.date||'')<=r.end);
+  const salesAmt=sales.reduce((a,o)=>a+orderTotal(o),0),spent=xs.reduce((a,x)=>a+num(x.amount),0);
+  const ads=xs.filter(x=>x.category==='Meta ads').reduce((a,x)=>a+num(x.amount),0);
+  const social=sales.filter(o=>SOCIAL.includes(o.channel));
+  return {os,sales,xs,salesAmt,spent,ads,profit:salesAmt-spent,socialAmt:social.reduce((a,o)=>a+orderTotal(o),0),socialN:social.length,
+    collected:sales.reduce((a,o)=>a+Math.min(num(o.paid),orderTotal(o)),0)}}
+function vAnalytics(){
+  const r=rangeOf(S.anRange);const st=statsFor(r);
+  const chips=[['month','This month'],['lastmonth','Last month'],['fy','This FY'],['lastfy','Last FY'],['all','All time']].map(([k,l])=>`<button class="chip" type="button" aria-pressed="${S.anRange===k}" data-range="${k}">${l}</button>`).join('');
+  const now=new Date();const months=[];for(let i=11;i>=0;i--)months.push(monthKey(new Date(now.getFullYear(),now.getMonth()-i,1)));
+  const mrows=months.map(k=>{const s=statsFor({start:k+'-01',end:k+'-31'});return {k,sales:s.salesAmt,spent:s.spent,ads:s.ads,profit:s.profit}});const max=Math.max(1,...mrows.map(x=>Math.max(x.sales,x.spent)));
+  const byH={};st.sales.forEach(o=>{const k=o.hamperName||'—';byH[k]=byH[k]||{u:0,rev:0,cost:0,n:0};byH[k].u+=num(o.qty||1);byH[k].n++;byH[k].rev+=orderTotal(o)-num(o.deliveryFee);byH[k].cost+=orderCost(o)});
+  const hRows=Object.entries(byH).sort((a,b)=>b[1].rev-a[1].rev);const hTot=hRows.reduce((a,[,v])=>a+v.rev,0)||1;
+  const byC={};st.os.forEach(o=>{const k=o.channel||'Other';byC[k]=byC[k]||{n:0,won:0,rev:0};byC[k].n++;if(isSale(o)){byC[k].won++;byC[k].rev+=orderTotal(o)}});
+  const byO={};st.sales.forEach(o=>{const k=o.occasion||'Other';byO[k]=(byO[k]||0)+orderTotal(o)});
+  const fy=fyOf(now),fs=statsFor(fy);const fyCats={};fs.xs.forEach(x=>fyCats[x.category||'Other']=(fyCats[x.category||'Other']||0)+num(x.amount));
+  const daysLeft=daysFromToday(fy.end);const roas=st.ads?st.socialAmt/st.ads:null;
+  return `<section><div class="sec-head"><h2>Analytics</h2><span class="sp"></span><div class="filters">${chips}</div></div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">Total sales</div><div class="v">${money(st.salesAmt)}</div><div class="s">${st.sales.length} orders · avg ${money(st.sales.length?st.salesAmt/st.sales.length:0)}</div></div>
+      <div class="kpi"><div class="l">Profit</div><div class="v" style="color:${st.profit<0?'var(--bad)':'var(--ok)'}">${money(st.profit)}</div><div class="s">${money(st.spent)} spent · ${pct(st.profit,st.salesAmt)}% of sales</div></div>
+      <div class="kpi"><div class="l">Enquiry → order</div><div class="v">${pct(st.sales.length,st.os.length)}%</div><div class="s">${st.os.length} enquiries and orders</div></div>
+      <div class="kpi"><div class="l">Meta ads return</div><div class="v">${roas===null?'—':roas.toFixed(1)+'×'}</div><div class="s">${money(st.ads)} on ads → ${money(st.socialAmt)} from Instagram &amp; Facebook${st.socialN&&st.ads?' · '+money(st.ads/st.socialN)+' per order':''}</div></div>
+    </div></section>
+    <section class="two">
+      <div><div class="sec-head"><h2>Sales per hamper</h2><span class="muted">${esc(r.label)}</span></div><div class="panel table-wrap"><table><thead><tr><th>Hamper</th><th class="r">Sold</th><th class="r">Sales</th><th class="r">Share</th><th class="r">Est. margin</th></tr></thead><tbody>
+        ${hRows.map(([k,v],i)=>`<tr><td>${i===0?'<span class="pill ok">Top</span> ':''}${esc(k)}</td><td class="r num">${v.u}</td><td class="r num">${money(v.rev)}</td><td class="r num">${pct(v.rev,hTot)}%</td><td class="r num">${money(v.rev-v.cost)} <span class="muted">(${pct(v.rev-v.cost,v.rev)}%)</span></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No sales in this period.</td></tr>'}</tbody></table></div></div>
+      <div><div class="sec-head"><h2>Where orders come from</h2></div><div class="panel table-wrap"><table><thead><tr><th>Channel</th><th class="r">Enquiries</th><th class="r">Converted</th><th class="r">Sales</th></tr></thead><tbody>
+        ${Object.entries(byC).sort((a,b)=>b[1].rev-a[1].rev).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r num">${v.n}</td><td class="r num">${pct(v.won,v.n)}%</td><td class="r num">${money(v.rev)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Nothing in this period.</td></tr>'}</tbody></table></div>
+        <div class="sec-head" style="margin-top:16px"><h2>By occasion</h2></div><div class="filters">${Object.entries(byO).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span class="pill acc" style="font-size:13px;padding:5px 12px">${esc(k)} · ${money(v)}</span>`).join('')||'<span class="muted">Nothing in this period.</span>'}</div></div>
+    </section>
+    <section><div class="sec-head"><h2>Total sales, last 12 months</h2></div><div class="panel">
+      <div class="bars">${mrows.map(x=>`<div class="bar-row"><span class="num">${monthLabel(x.k)}</span><div style="display:grid;gap:3px"><div class="bar-track"><i style="width:${x.sales/max*100}%;background:var(--accent)"></i></div><div class="bar-track"><i style="width:${x.spent/max*100}%;background:var(--gold)"></i></div></div><span class="num" style="text-align:right;color:${x.profit<0?'var(--bad)':'var(--ink)'}">${money(x.profit)}</span></div>`).join('')}</div>
+      <div class="legend"><span><b style="background:var(--accent)"></b>Sales</span><span><b style="background:var(--gold)"></b>Spent (incl. ads)</span><span>Right: profit</span></div></div></section>
+    <section><div class="sec-head"><h2>End of financial year: ${esc(fy.label)}</h2><span class="muted">${daysLeft} days to 30 June</span></div>
+      <div class="two"><div class="kpis" style="grid-template-columns:1fr 1fr">
+        <div class="kpi"><div class="l">FY sales</div><div class="v">${money(fs.salesAmt)}</div><div class="s">${fs.sales.length} orders</div></div>
+        <div class="kpi"><div class="l">FY spent</div><div class="v">${money(fs.spent)}</div><div class="s">${money(fs.ads)} on Meta ads</div></div>
+        <div class="kpi"><div class="l">FY profit</div><div class="v" style="color:${fs.profit<0?'var(--bad)':'var(--ok)'}">${money(fs.profit)}</div><div class="s">before tax</div></div>
+        <div class="kpi"><div class="l">Still to collect</div><div class="v">${money(fs.salesAmt-fs.collected)}</div><div class="s">unpaid this FY</div></div></div>
+      <div class="panel table-wrap"><table><thead><tr><th>FY expenses for your accountant</th><th class="r">Amount</th></tr></thead><tbody>${Object.entries(fyCats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r num">${money(v)}</td></tr>`).join('')||'<tr><td colspan="2" class="empty">No expenses yet this FY.</td></tr>'}</tbody></table></div></div>
+      <p class="note">Sales count confirmed orders by delivery date. Profit is sales minus everything logged under Expenses (stock, packaging, ads), so it is a cash-style estimate, not tax advice. Once yearly turnover reaches $75,000 you must register for GST; check with your accountant.</p></section>`;
+}
+function salesByHamper(days){const from=addDays(todayISO(),-days);const m={};S.orders.filter(o=>isSale(o)&&orderDay(o)>=from).forEach(o=>m[o.hamperId]=(m[o.hamperId]||0)+num(o.qty||1));return m}
+function pushFor(ev){
+  const act=S.hampers.filter(h=>h.active!==false);if(!act.length)return null;
+  const s90=salesByHamper(90),sAll=salesByHamper(3650);
+  const score=h=>(s90[h.id]||0)*3+(sAll[h.id]||0)+pct(num(h.price)-num(h.cost),num(h.price))/20;
+  const tagged=act.filter(h=>h.occasion===ev.occ);const pool=tagged.length?tagged:act;
+  const best=pool.slice().sort((a,b)=>score(b)-score(a))[0];
+  return {hamper:best,tagged:!!tagged.length,sold90:s90[best.id]||0,margin:pct(num(best.price)-num(best.cost),num(best.price)),can:buildable(best)};
+}
+function vGrow(){
+  const up=EVENTS.filter(e=>{const d=daysFromToday(e.date);return d>=-1&&d<=120});
+  return `<section class="two">
+    <div><div class="sec-head"><h2>Coming up in Sydney</h2><span class="muted">next 4 months</span></div><div class="panel">
+    ${up.map(e=>{const d=daysFromToday(e.date),p=pushFor(e),start=addDays(e.date,-e.lead),sd=daysFromToday(start);const [,mm,dd]=e.date.split('-');
+      return `<div class="event"><div class="d"><b>${+dd}</b><span>${new Date(2000,+mm-1,1).toLocaleDateString('en-AU',{month:'short'})}</span></div><div class="body">
+        <div><b>${esc(e.name)}</b> <span class="muted small-t">${esc(e.who)}${e.approx?' · date may shift a day':''}</span></div>
+        <div class="small-t">${d<=0?'<span class="pill acc">Today</span>':`In ${d} days · `}${sd<=0&&d>0?'<span class="pill warn">Promote now</span>':d>0?`start promoting ${fmtDate(start)}`:''}</div>
+        ${p?`<div class="push">Push <b>${esc(p.hamper.name)}</b> <span class="muted small-t">${money(p.hamper.price)} · ${p.margin}% margin · sold ${p.sold90} in 90 days${p.tagged?'':' · best overall seller (no hamper tagged '+esc(e.occ)+')'}</span>${p.can!==null?`<span class="pill ${p.can===0?'bad':p.can<10?'warn':'ok'}">stock for ${p.can}</span>`:''}</div>`:'<div class="muted small-t">Add hampers to get a suggestion.</div>'}
+      </div></div>`}).join('')||'<div class="empty">No events in the next 4 months.</div>'}
+    </div></div>
+    <div><div class="sec-head"><h2>Ask your consultant</h2></div><div class="panel pad" style="display:grid;gap:10px">
+      <p class="small-t muted" style="margin:0">Claude reads your sales, margins, stock, ad spend and the festival calendar, then tells you what to push and what to do this week.</p>
+      ${S.sample?`<div class="filters"><button class="btn primary" type="button" data-act="advise">Plan my next 2 weeks</button></div>
+      <input type="text" id="askQ" placeholder="Or ask anything, e.g. what should I post for Diwali?" aria-label="Question for the consultant">
+      <div class="filters"><button class="btn" type="button" data-act="ask">Ask</button><span class="muted small-t" id="adviceStatus"></span></div>
+      <div class="advice" id="adviceOut"></div>`:'<div class="muted small-t">The AI consultant only works in the claude.ai version of the Order Desk. Here, use the suggestions on the left, which come from your own sales and stock.</div>'}
+    </div></div></section>
+    <p class="note">Suggestions favour hampers tagged for that occasion, weighted by what sold in the last 90 days and by margin. Tag each hamper with its main occasion in the Hampers tab to sharpen them.</p>`;
+}
+function vSetup(){
+  return `<section class="panel pad" style="max-width:600px"><h2 style="margin-bottom:12px">Business settings</h2>
+    <form id="settingsForm" class="form"><label>Business name<input type="text" id="setName" value="${esc(S.settings.name)}"></label>
+    <label>Currency symbol<input type="text" id="setCur" value="${esc(S.settings.currency)}" maxlength="4"></label>
+    <label class="full">Order confirmation message<textarea id="setMsg" rows="5">${esc(S.settings.confirmMsg||defaultMsg())}</textarea><span>Use {name}, {hamper}, {date}, {total}, {due}, {ref}.</span></label>
+    <div class="full w-only"><button class="btn primary" type="submit">Save settings</button></div></form></section>
+    <section class="panel pad" style="max-width:600px;display:grid;gap:10px"><h2>Backup &amp; restore</h2>
+    <p class="small-t muted" style="margin:0">Everything is saved in this browser on this device only. Download a backup every week, and to move to another phone or laptop, download here and restore there. Clearing your browser data erases it.</p>
+    <div class="filters"><button class="btn primary" type="button" data-act="export">Download backup</button><label class="btn" for="importFile">Restore from backup</label><input type="file" id="importFile" accept="application/json,.json" hidden></div>
+    <p class="small-t muted" style="margin:0">${lastBackup()?'Last backup: '+fmtDate(lastBackup()):'No backup downloaded yet.'} Restoring replaces everything currently on this device.</p></section>
+    <section class="note"><h2 style="margin-bottom:6px">Your daily routine (about 10 minutes)</h2>
+    <p>1. A DM comes in on Instagram or Facebook: tap <b>+ Enquiry / order</b> and fill in the name, hamper and date. Save.<br>
+    2. Open <b>Today</b>. Everyone in “Follow up today” gets a one-tap message link. Snooze, confirm or mark lost.<br>
+    3. Move orders along with one tap: packing, out for delivery, delivered. Stock comes off automatically when they go out.<br>
+    4. Log Meta ad spend and purchases under <b>+ Expense</b>; restock from the <b>Stock</b> tab.<br>
+    5. Once a week, open <b>Festivals &amp; advice</b> and <b>Analytics</b> to decide what to push and where to spend on ads.</p></section>`;
+}
+function defaultMsg(){return 'Hi {name}! Your {hamper} is confirmed for {date}. Total: {total}. Balance due: {due}. Order ref {ref}. Thank you for choosing '+(S.settings.name||'us')+'!'}
+
+/* ---------- consultant ---------- */
+function fmtAdvice(t){return t.split(/\n{2,}/).map(p=>'<p>'+esc(p).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>')+'</p>').join('')}
+function businessSnapshot(){
+  const s90=salesByHamper(90);const r=statsFor({start:addDays(todayISO(),-90),end:'9999'});
+  const ch={};r.os.forEach(o=>{const k=o.channel||'Other';ch[k]=ch[k]||{enquiries:0,orders:0};ch[k].enquiries++;if(isSale(o))ch[k].orders++});
+  return {today:todayISO(),city:'Sydney, Australia',currency:'AUD',
+    hampers:S.hampers.filter(h=>h.active!==false).map(h=>({name:h.name,price:num(h.price),cost:num(h.cost),occasion:h.occasion||'',sold_last_90_days:s90[h.id]||0,can_make_from_stock:buildable(h)})),
+    last_90_days:{sales:Math.round(r.salesAmt),orders:r.sales.length,enquiries:r.os.length,spent:Math.round(r.spent),meta_ads:Math.round(r.ads),sales_from_instagram_facebook:Math.round(r.socialAmt),by_channel:ch},
+    stock_problems:stockRows().filter(x=>x.state!=='ok').map(x=>({item:x.name,free:x.av,reorder_at:num(x.reorderAt)})),
+    open_enquiries:S.orders.filter(o=>o.status==='enquiry').length,
+    upcoming_events:EVENTS.filter(e=>{const d=daysFromToday(e.date);return d>=0&&d<=75}).map(e=>({name:e.name,date:e.date,community:e.who,days_away:daysFromToday(e.date)}))};
+}
+async function consult(question){
+  if(S.adviceBusy||!S.sample)return;S.adviceBusy=true;const st=document.getElementById('adviceStatus');if(st)st.textContent='Thinking…';
+  const sys=`You are a hands-on retail and marketing consultant for a small, one-person gift hamper business in Sydney that sells mainly through Instagram and Facebook with Meta ads. Be specific and practical, use the numbers given, name exact hampers, and keep it under 250 words. Use short paragraphs, each starting with a **bold label**. No tables. If data is thin or marked example, say what to track next instead of inventing numbers.`;
+  const task=question?`Question: ${question}`:`Give a plan for the next 2 weeks: which hamper(s) to push and why, which festival or occasion to target and when to start the ads, a suggested Meta ad budget split, stock to reorder before the rush, and one quick win to convert open enquiries.`;
+  try{const res=await S.sample(`${sys}\n\nBusiness data (JSON):\n${JSON.stringify(businessSnapshot())}\n\n${task}`,{modelTier:'default',cache:false,onText:({text})=>{S.advice=text;const a=document.getElementById('adviceOut');if(a)a.innerHTML=fmtAdvice(text)}});
+    S.advice=res.text;const a=document.getElementById('adviceOut');if(a)a.innerHTML=fmtAdvice(res.text);if(st)st.textContent='';
+  }catch(e){if(st)st.textContent=e&&e.code==='not_granted'?'Allow Claude access for this page to use the consultant.':e&&e.code==='rate_limited'?'Too many requests. Try again in a minute.':'Could not get advice right now.'}
+  S.adviceBusy=false;
+}
+
+/* ---------- order sheet ---------- */
+function openOrder(id){
+  const o=id?{...S.orders.find(x=>x.id===id)}:{status:'enquiry',channel:'Instagram',qty:1,discount:0,deliveryFee:0,paid:0,nextFollowUp:addDays(todayISO(),1)};
+  if(!o)return;
+  const hOpts='<option value="">Choose hamper…</option>'+S.hampers.filter(h=>h.active!==false||h.id===o.hamperId).map(h=>`<option value="${esc(h.id)}" ${h.id===o.hamperId?'selected':''}>${esc(h.name)} · ${money(h.price)}</option>`).join('')+`<option value="__custom" ${o.hamperId==='__custom'?'selected':''}>Custom hamper</option>`;
+  const sel=(arr,v)=>arr.map(x=>`<option ${x===v?'selected':''}>${x}</option>`).join('');
+  const ro=!S.canWrite?'disabled':'';
+  document.getElementById('sheetRoot').innerHTML=`<div class="scrim" data-act="close"><div class="sheet" role="dialog" aria-modal="true" aria-label="Order">
+    <div class="sheet-head"><h2>${id?esc(o.customer||'Order')+' <span class="muted num" style="font-size:14px">'+esc(o.ref||'')+'</span>':'New enquiry or order'}</h2><button class="btn ghost" type="button" data-act="close" aria-label="Close">✕</button></div>
+    ${!id&&S.sample&&S.canWrite?`<div class="paste" style="margin-bottom:14px"><div class="h">Paste the customer’s DM and let Claude fill this in</div><textarea id="pasteMsg" rows="3" placeholder="e.g. Hi! Do you deliver to Parramatta? I'd like 2 of the Diwali boxes for 7 Nov, I'm Anjali, 0412 345 678"></textarea><div><button class="btn small primary" type="button" data-act="parse">Fill the form</button> <span class="muted small-t" id="parseStatus"></span></div></div>`:''}
+    <form id="orderForm" class="form" autocomplete="off">
+      <fieldset class="full" style="border:0;padding:0;margin:0"><div class="steps">${STATUSES.concat([{k:'lost',label:'Lost'}]).map(s=>`<button type="button" class="chip" data-stage="${s.k}" aria-pressed="${o.status===s.k}" ${ro}>${s.label}</button>`).join('')}</div></fieldset>
+      <label>Customer name<input type="text" id="fCustomer" value="${esc(o.customer)}" required ${ro}></label>
+      <label>Came from<select id="fChannel" ${ro}>${sel(CHANNELS,o.channel)}</select></label>
+      <label>Instagram / Facebook handle<input type="text" id="fHandle" value="${esc(o.handle)}" placeholder="@name" ${ro}></label>
+      <label>Phone<input type="tel" id="fPhone" value="${esc(o.phone)}" placeholder="04xx xxx xxx" ${ro}></label>
+      <label>Hamper<select id="fHamper" ${ro}>${hOpts}</select></label>
+      <label>Quantity<input type="number" id="fQty" min="1" step="1" value="${esc(o.qty||1)}" ${ro}></label>
+      <label id="customNameWrap" ${o.hamperId==='__custom'?'':'hidden'} class="full">Custom hamper name<input type="text" id="fCustomName" value="${esc(o.hamperId==='__custom'?o.hamperName:'')}" ${ro}></label>
+      <label>Occasion<select id="fOccasion" ${ro}><option value="">—</option>${sel(OCCASIONS,o.occasion)}</select></label>
+      <label>Delivery date<input type="date" id="fDate" value="${esc(o.deliveryDate||'')}" ${ro}></label>
+      <label>Price per hamper<input type="number" id="fPrice" min="0" step="0.01" value="${esc(o.unitPrice??'')}" ${ro}></label>
+      <label>Your cost per hamper<input type="number" id="fCost" min="0" step="0.01" value="${esc(o.unitCost??'')}" ${ro}></label>
+      <label>Discount<input type="number" id="fDiscount" min="0" step="0.01" value="${esc(o.discount||0)}" ${ro}></label>
+      <label>Delivery charge to customer<input type="number" id="fFee" min="0" step="0.01" value="${esc(o.deliveryFee||0)}" ${ro}></label>
+      <label>Amount received<input type="number" id="fPaid" min="0" step="0.01" value="${esc(o.paid||0)}" ${ro}></label>
+      <label>Next follow-up (enquiries)<input type="date" id="fFollow" value="${esc(o.nextFollowUp||'')}" ${ro}></label>
+      <label class="full">Delivery address<textarea id="fAddress" rows="2" ${ro}>${esc(o.address)}</textarea></label>
+      <label class="full">Gift note / card message<input type="text" id="fGift" value="${esc(o.giftNote)}" ${ro}></label>
+      <label class="full">Internal notes<input type="text" id="fNotes" value="${esc(o.notes)}" placeholder="Customisation, budget, why lost…" ${ro}></label>
+      <div class="full totals" id="fTotals"></div>
+    </form>
+    <div class="sheet-foot">
+      ${id?`<a class="btn" id="msgLink" target="_blank" rel="noopener" href="#">Message customer</a><button class="btn" type="button" data-act="copy-msg">Copy confirmation</button>`:''}
+      <span class="sp"></span>
+      ${id&&S.canWrite?`<button class="btn ghost" type="button" data-act="delete-order">Delete</button>`:''}
+      ${S.canWrite?`<button class="btn primary" type="button" data-act="save-order">${id?'Save changes':'Save'}</button>`:''}
+    </div></div></div>`;
+  const sheet=document.querySelector('.sheet');sheet.dataset.id=id||'';sheet.dataset.status=o.status;
+  const upd=()=>{const f=readOrderForm();document.getElementById('fTotals').innerHTML=`<span>Total <b>${money(orderTotal(f))}</b></span><span>Balance <b>${money(balance(f))}</b></span><span>Est. margin <b>${money(orderTotal(f)-num(f.deliveryFee)-orderCost(f))}</b></span>`;
+    const l=document.getElementById('msgLink');if(l){const c=contactLink(f,confirmText(f));l.hidden=!c;if(c){l.href=c.href;l.textContent=c.label}}};
+  sheet.addEventListener('input',upd);sheet.addEventListener('change',upd);
+  document.getElementById('fHamper').addEventListener('change',e=>{const h=S.hampers.find(x=>x.id===e.target.value);document.getElementById('customNameWrap').hidden=e.target.value!=='__custom';
+    if(h){document.getElementById('fPrice').value=h.price||0;document.getElementById('fCost').value=h.cost||0;if(h.occasion&&!document.getElementById('fOccasion').value&&OCCASIONS.includes(h.occasion))document.getElementById('fOccasion').value=h.occasion}upd()});
+  upd();
+  (document.getElementById('pasteMsg')||document.getElementById('fCustomer')).focus();
+}
+function readOrderForm(){
+  const g=id=>document.getElementById(id).value;const sheet=document.querySelector('.sheet');
+  const hid=g('fHamper');const h=S.hampers.find(x=>x.id===hid);
+  return {customer:g('fCustomer').trim(),phone:g('fPhone').trim(),handle:g('fHandle').trim().replace(/^@/,''),channel:g('fChannel'),occasion:g('fOccasion'),hamperId:hid,
+    hamperName:hid==='__custom'?(g('fCustomName').trim()||'Custom hamper'):(h?h.name:''),qty:Math.max(1,num(g('fQty'))),unitPrice:num(g('fPrice')),unitCost:num(g('fCost')),
+    discount:num(g('fDiscount')),deliveryFee:num(g('fFee')),deliveryDate:g('fDate'),paid:num(g('fPaid')),nextFollowUp:g('fFollow'),address:g('fAddress').trim(),giftNote:g('fGift').trim(),notes:g('fNotes').trim(),
+    status:sheet.dataset.status};
+}
+function confirmText(o){return (S.settings.confirmMsg||defaultMsg()).replace(/\{name\}/g,(o.customer||'').split(' ')[0]).replace(/\{hamper\}/g,(o.qty>1?o.qty+' × ':'')+(o.hamperName||'hamper'))
+  .replace(/\{date\}/g,o.deliveryDate?fmtDate(o.deliveryDate):'the agreed date').replace(/\{total\}/g,money(orderTotal(o))).replace(/\{due\}/g,money(Math.max(0,balance(o)))).replace(/\{ref\}/g,o.ref||'')}
+async function saveOrder(){
+  const sheet=document.querySelector('.sheet');const f=readOrderForm();
+  if(!f.customer){toast('Add the customer’s name');document.getElementById('fCustomer').focus();return}
+  const id=sheet.dataset.id;const prev=id?(S.orders.find(o=>o.id===id)||{}):{};const nowIso=new Date().toISOString();
+  const ref=prev.ref||('#'+(S.orders.reduce((m,o)=>Math.max(m,parseInt((o.ref||'').slice(1))||1000),1000)+1));
+  const doc={...prev,...f,ref,createdAt:prev.createdAt||nowIso,updatedAt:nowIso};delete doc.id;
+  Object.assign(doc,await stockFields(prev,f.status,doc));
+  if(await save('orders/'+(id||newId()),doc)){closeSheet();toast(id?'Saved':'Added '+ref)}
+}
+async function moveTo(o,status,extra={}){
+  const upd={status,updatedAt:new Date().toISOString(),...extra,...await stockFields(o,status,o)};
+  if(await patch('orders/'+o.id,upd))toast(`${o.customer}: ${STATUS_LABEL[status]}`);
+}
+async function parseMessage(){
+  const msg=document.getElementById('pasteMsg').value.trim();const st=document.getElementById('parseStatus');if(!msg){st.textContent='Paste a message first.';return}
+  st.textContent='Reading the message…';
+  const prompt=`You extract gift-hamper order details from a customer's chat message to a business in Sydney, Australia. Today is ${todayISO()}.
+Catalogue hamper names: ${JSON.stringify(S.hampers.map(h=>h.name))}
+Occasions: ${JSON.stringify(OCCASIONS)}
+Channels: ${JSON.stringify(CHANNELS)}
+Return ONLY a JSON object with keys: customer (string), phone (string), handle (Instagram/Facebook username without @, or ""), hamper (exact catalogue name or null), qty (number), deliveryDate (YYYY-MM-DD or null, resolve relative dates against today), address (string), giftNote (string), occasion (one of the occasions or null), channel (one of channels or null), notes (budget or any other request, short). Use "" for unknown strings.
+Message:
+"""${msg}"""`;
+  try{const r=await S.sample.json(prompt,{modelTier:'quick'});
+    const set=(id,v)=>{if(v!==undefined&&v!==null&&v!=='')document.getElementById(id).value=v};
+    set('fCustomer',r.customer);set('fPhone',r.phone);set('fHandle',r.handle);set('fQty',r.qty);set('fDate',r.deliveryDate);set('fAddress',r.address);set('fGift',r.giftNote);set('fNotes',r.notes);
+    if(r.occasion&&OCCASIONS.includes(r.occasion))document.getElementById('fOccasion').value=r.occasion;
+    if(r.channel&&CHANNELS.includes(r.channel))document.getElementById('fChannel').value=r.channel;
+    const h=r.hamper&&S.hampers.find(x=>x.name.toLowerCase()===String(r.hamper).toLowerCase());
+    if(h){const s=document.getElementById('fHamper');s.value=h.id;s.dispatchEvent(new Event('change'))}
+    document.querySelector('.sheet').dispatchEvent(new Event('input'));
+    st.textContent='Filled in. Check it and save.';
+  }catch(e){st.textContent=e&&e.code==='not_granted'?'Allow Claude access to use this.':'Could not read that message. Fill it in by hand.'}
+}
+function closeSheet(){document.getElementById('sheetRoot').innerHTML=''}
+
+/* ---------- hamper & stock sheets ---------- */
+function compRow(c){return `<div class="comp-row"><select class="cItem" aria-label="Stock item"><option value="">Choose item…</option>${S.inventory.map(i=>`<option value="${esc(i.id)}" ${i.id===c.itemId?'selected':''}>${esc(i.name)}</option>`).join('')}</select><input type="number" class="cQty" min="0" step="0.5" value="${esc(c.qty??1)}" aria-label="Quantity per hamper"><button class="btn ghost small" type="button" data-act="del-comp" aria-label="Remove">✕</button></div>`}
+function openHamper(id){
+  const h=id?S.hampers.find(x=>x.id===id):{active:true,components:[]};
+  document.getElementById('sheetRoot').innerHTML=`<div class="scrim" data-act="close"><div class="sheet" role="dialog" aria-modal="true" aria-label="Hamper">
+    <div class="sheet-head"><h2>${id?'Edit hamper':'New hamper'}</h2><button class="btn ghost" type="button" data-act="close" aria-label="Close">✕</button></div>
+    <form id="hamperForm" class="form"><label class="full">Name<input type="text" id="hName" value="${esc(h.name)}" required></label>
+    <label>Selling price<input type="number" id="hPrice" min="0" step="0.01" value="${esc(h.price??'')}"></label>
+    <label>Your cost to make<input type="number" id="hCost" min="0" step="0.01" value="${esc(h.cost??'')}"></label>
+    <label>Main occasion<select id="hOcc"><option value="">Any occasion</option>${OCCASIONS.map(x=>`<option ${x===h.occasion?'selected':''}>${x}</option>`).join('')}</select></label>
+    <label>Status<select id="hActive"><option value="1">Selling</option><option value="0" ${h.active===false?'selected':''}>Paused</option></select></label>
+    <label class="full">What’s inside (for customers)<textarea id="hContents" rows="2">${esc(h.contents)}</textarea></label>
+    <div class="full" style="display:grid;gap:8px"><div class="muted small-t" style="font-weight:500">Recipe: stock used per hamper</div><div id="comps" style="display:grid;gap:8px">${(h.components||[]).map(compRow).join('')}</div>
+      <div class="filters"><button class="btn small" type="button" data-act="add-comp" ${S.inventory.length?'':'disabled'}>+ Add item</button><button class="btn small ghost" type="button" data-act="calc-cost">Work out cost from recipe</button>${S.inventory.length?'':'<span class="muted small-t">Add stock items in the Stock tab first.</span>'}</div></div></form>
+    <div class="sheet-foot"><span class="sp"></span>${id?`<button class="btn ghost" type="button" data-act="delete-hamper" data-id="${esc(id)}">Delete</button>`:''}<button class="btn primary" type="button" data-act="save-hamper" data-id="${esc(id||'')}">Save hamper</button></div></div></div>`;
+  document.getElementById('hName').focus();
+}
+function readComps(){return [...document.querySelectorAll('#comps .comp-row')].map(r=>({itemId:r.querySelector('.cItem').value,qty:num(r.querySelector('.cQty').value)})).filter(c=>c.itemId&&c.qty>0)}
+async function saveHamper(id){
+  const g=x=>document.getElementById(x).value;if(!g('hName').trim()){toast('Give the hamper a name');return}
+  const prev=id?S.hampers.find(x=>x.id===id):{};
+  const doc={name:g('hName').trim(),price:num(g('hPrice')),cost:num(g('hCost')),occasion:g('hOcc'),active:g('hActive')==='1',contents:g('hContents').trim(),components:readComps()};
+  if(prev&&prev.example)doc.example=true;
+  if(await save('hampers/'+(id||newId()),doc)){closeSheet();toast('Hamper saved')}
+}
+function openItem(id){
+  const i=id?S.inventory.find(x=>x.id===id):{unit:'units'};
+  document.getElementById('sheetRoot').innerHTML=`<div class="scrim" data-act="close"><div class="sheet" role="dialog" aria-modal="true" aria-label="Stock item">
+    <div class="sheet-head"><h2>${id?'Edit stock item':'New stock item'}</h2><button class="btn ghost" type="button" data-act="close" aria-label="Close">✕</button></div>
+    <form id="itemForm" class="form"><label class="full">Name<input type="text" id="iName" value="${esc(i.name)}" placeholder="e.g. Wicker basket (medium)" required></label>
+    <label>On hand now<input type="number" id="iOn" min="0" step="1" value="${esc(i.onHand??0)}"></label>
+    <label>Unit<input type="text" id="iUnit" value="${esc(i.unit)}" placeholder="units, boxes, metres"></label>
+    <label>Reorder when free stock is at<input type="number" id="iRe" min="0" step="1" value="${esc(i.reorderAt??5)}"></label>
+    <label>Cost per unit<input type="number" id="iCost" min="0" step="0.01" value="${esc(i.unitCost??'')}"></label>
+    <label class="full">Supplier<input type="text" id="iSup" value="${esc(i.supplier)}" placeholder="Where you buy it"></label></form>
+    <div class="sheet-foot"><span class="sp"></span>${id?`<button class="btn ghost" type="button" data-act="delete-item" data-id="${esc(id)}">Delete</button>`:''}<button class="btn primary" type="button" data-act="save-item" data-id="${esc(id||'')}">Save item</button></div></div></div>`;
+  document.getElementById('iName').focus();
+}
+async function saveItem(id){
+  const g=x=>document.getElementById(x).value;if(!g('iName').trim()){toast('Name the item');return}
+  const prev=id?S.inventory.find(x=>x.id===id):{};
+  const doc={name:g('iName').trim(),onHand:num(g('iOn')),unit:g('iUnit').trim()||'units',reorderAt:num(g('iRe')),unitCost:num(g('iCost')),supplier:g('iSup').trim()};
+  if(prev&&prev.example)doc.example=true;
+  if(await save('inventory/'+(id||newId()),doc)){closeSheet();toast('Stock item saved')}
+}
+
+/* ---------- events ---------- */
+let confirmArm=null;
+function armConfirm(btn,label,fn){if(confirmArm===btn){confirmArm=null;fn();return}confirmArm=btn;const old=btn.textContent;btn.textContent=label;btn.style.color='var(--bad)';setTimeout(()=>{if(confirmArm===btn){confirmArm=null;btn.textContent=old;btn.style.color=''}},3500)}
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-advance],[data-open],[data-act],[data-filter],[data-range],[data-stage],[data-edit-hamper],[data-edit-item],[data-del-exp],[data-snooze],[data-lost]');if(!t)return;
+  if(t.dataset.act==='close'){if(e.target===t)closeSheet();return}
+  if(t.dataset.advance){e.stopPropagation();const o=S.orders.find(x=>x.id===t.dataset.advance);const i=STATUSES.findIndex(s=>s.k===o.status);const n=STATUSES[i+1];if(n)await moveTo(o,n.k);return}
+  if(t.dataset.snooze){const o=S.orders.find(x=>x.id===t.dataset.snooze);if(await patch('orders/'+o.id,{nextFollowUp:addDays(todayISO(),2),updatedAt:new Date().toISOString()}))toast('Reminder set for '+fmtDate(addDays(todayISO(),2)));return}
+  if(t.dataset.lost){const o=S.orders.find(x=>x.id===t.dataset.lost);await moveTo(o,'lost');return}
+  if(t.dataset.open){openOrder(t.dataset.open);return}
+  if(t.dataset.filter){S.orderFilter=t.dataset.filter;render();return}
+  if(t.dataset.range){S.anRange=t.dataset.range;render();return}
+  if(t.dataset.stage){document.querySelector('.sheet').dataset.status=t.dataset.stage;document.querySelectorAll('[data-stage]').forEach(b=>b.setAttribute('aria-pressed',b===t));return}
+  if(t.dataset.editHamper){openHamper(t.dataset.editHamper);return}
+  if(t.dataset.editItem){openItem(t.dataset.editItem);return}
+  if(t.dataset.delExp){armConfirm(t,'Delete?',()=>remove('expenses/'+t.dataset.delExp));return}
+  switch(t.dataset.act){
+    case 'export':return exportBackup();
+    case 'save-order':return saveOrder();
+    case 'parse':return parseMessage();
+    case 'advise':return consult('');
+    case 'ask':{const q=document.getElementById('askQ').value.trim();if(!q){toast('Type a question first');return}return consult(q)}
+    case 'delete-order':return armConfirm(t,'Tap again to delete',async()=>{const id=document.querySelector('.sheet').dataset.id;const o=S.orders.find(x=>x.id===id);if(o&&o.stockDeducted)await adjustStock(o.stockUsed||[],+1);await remove('orders/'+id);closeSheet();toast('Order deleted')});
+    case 'copy-msg':{const txt=confirmText({...readOrderForm(),ref:(S.orders.find(o=>o.id===document.querySelector('.sheet').dataset.id)||{}).ref});try{await navigator.clipboard.writeText(txt);toast('Message copied')}catch(_){const a=document.createElement('textarea');a.value=txt;a.rows=3;document.querySelector('.sheet').appendChild(a);a.select();toast('Select and copy the message')}return}
+    case 'new-hamper':return openHamper(null);
+    case 'save-hamper':return saveHamper(t.dataset.id);
+    case 'delete-hamper':return armConfirm(t,'Tap again to delete',async()=>{await remove('hampers/'+t.dataset.id);closeSheet();toast('Hamper deleted')});
+    case 'add-comp':document.getElementById('comps').insertAdjacentHTML('beforeend',compRow({qty:1}));return;
+    case 'del-comp':t.closest('.comp-row').remove();return;
+    case 'calc-cost':{const c=readComps().reduce((a,c)=>a+num((itemOf(c.itemId)||{}).unitCost)*c.qty,0);if(c>0){document.getElementById('hCost').value=Math.round(c*100)/100;toast('Cost from recipe: '+money(c))}else toast('Add recipe items with a cost first');return}
+    case 'new-item':return openItem(null);
+    case 'save-item':return saveItem(t.dataset.id);
+    case 'delete-item':return armConfirm(t,'Tap again to delete',async()=>{await remove('inventory/'+t.dataset.id);closeSheet();toast('Item deleted')});
+    case 'clear-examples':return armConfirm(t,'Tap again to remove examples',async()=>{
+      for(const [c,arr] of [['orders',S.orders],['hampers',S.hampers],['expenses',S.expenses],['inventory',S.inventory]])for(const d of arr.filter(x=>x.example))await remove(c+'/'+d.id);toast('Examples removed')});
+  }
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.key==='Enter'&&e.target.matches('.card[data-open]'))openOrder(e.target.dataset.open);if(e.key==='Enter'&&e.target.id==='askQ'){e.preventDefault();const q=e.target.value.trim();if(q)consult(q)}});
+document.addEventListener('input',e=>{if(e.target.id==='orderSearch'){S.orderSearch=e.target.value;const pos=e.target.selectionStart;render();const s=document.getElementById('orderSearch');s.focus();s.setSelectionRange(pos,pos)}});
+document.addEventListener('change',e=>{if(e.target.id==='importFile'&&e.target.files[0]){importBackup(e.target.files[0]);e.target.value=''}if(e.target.id==='expMonth'&&e.target.value){S.expMonth=e.target.value;render()}});
+document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target;
+  if(f.dataset.restock){const it=itemOf(f.dataset.restock);const q=num(f.querySelector('input').value);if(!it||q<=0)return;
+    if(await patch('inventory/'+it.id,{onHand:num(it.onHand)+q})){if(num(it.unitCost)>0)await save('expenses/'+newId(),{amount:Math.round(num(it.unitCost)*q*100)/100,category:'Stock & products',note:`${q} × ${it.name}`,date:todayISO(),createdAt:new Date().toISOString()});toast(`Added ${q} ${it.unit||''} of ${it.name}`)}return}
+  if(f.id==='quickExp'){const amt=num(document.getElementById('qeAmount').value);if(amt<=0){toast('Enter an amount');return}
+    const d={amount:amt,category:document.getElementById('qeCat').value,note:document.getElementById('qeNote').value.trim(),date:document.getElementById('qeDate').value||todayISO(),createdAt:new Date().toISOString()};
+    if(await save('expenses/'+newId(),d))toast('Expense added: '+money(amt))}
+  if(f.id==='settingsForm'){const d={...S.settings,name:document.getElementById('setName').value.trim()||'TGS',currency:document.getElementById('setCur').value.trim()||'$',confirmMsg:document.getElementById('setMsg').value};
+    if(await save('config/settings',d))toast('Settings saved')}
+});
+document.getElementById('addOrderTop').addEventListener('click',()=>openOrder(null));
+document.getElementById('addExpenseTop').addEventListener('click',()=>{location.hash='expenses';setTimeout(()=>{const a=document.getElementById('qeAmount');if(a)a.focus()},50)});
+boot();
+</script>
+
+</body>
+</html>
